@@ -64,10 +64,15 @@ class ConfigApp (Base):
 
   def epilog (self):
     self.create_git_commit( )
-  def create_git_commit (self):
+  def git_repo (self):
     from git import Repo
-    self.repo = Repo(os.getcwd( ))
-    if self.repo.index.diff(None):
+    self.repo = getattr(self, 'repo', Repo(os.getcwd( )))
+    return self.repo
+    
+  def create_git_commit (self):
+    self.git_repo( )
+    # if self.repo.index.diff(None):
+    if self.repo.is_dirty( ) or self.repo.index.diff(None):
       git = self.repo.git
       msg = """{0:s} {1:s}
 

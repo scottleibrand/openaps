@@ -80,9 +80,9 @@ class MedtronicTask (scan):
     return out
   def create_session (self):
     minutes = int(self.device.fields.get('minutes', 10))
+    now = datetime.now( )
     self.pump.power_control(minutes=minutes)
     model = self.get_model( )
-    now = datetime.now( )
     offset = relativedelta.relativedelta(minutes=minutes)
     out = dict(device=self.device.name
       , model=model
@@ -139,6 +139,19 @@ class model (MedtronicTask):
     return model
 
 @use( )
+class read_history_data (MedtronicTask):
+  """ Read pump history page
+  """
+  def get_params (self, args):
+    return dict(page=int(args.page))
+  def configure_app (self, app, parser):
+    parser.add_argument('page', type=int, default=0)
+
+  def main (self, args, app):
+    history = self.pump.model.read_history_data(**self.get_params(args))
+    return history
+
+@use( )
 class status (MedtronicTask):
   """ Get pump status
   """
@@ -177,7 +190,7 @@ class read_clock (MedtronicTask):
 class SameNameCommand (MedtronicTask):
   def main (self, args, app):
     name = self.__class__.__name__.split('.').pop( )
-    return getattr(self.pump.model, name)( )
+    return getattr(self.pump.model, name)(**self.get_params(args))
 
 @use( )
 class read_temp_basal (SameNameCommand):
@@ -186,6 +199,67 @@ class read_temp_basal (SameNameCommand):
 @use( )
 class read_settings (SameNameCommand):
   """ Read settings. """
+
+@use( )
+class read_carb_ratios (SameNameCommand):
+  """ Read carb_ratios. """
+
+@use( )
+class read_current_glucose_pages (SameNameCommand):
+  """ Read current glucose pages. """
+
+@use( )
+class read_current_history_pages (SameNameCommand):
+  """ Read current history pages. """
+
+@use( )
+class read_glucose_data (SameNameCommand):
+  """ Read pump glucose page
+  """
+  def configure_app (self, app, parser):
+    parser.add_argument('page', type=int, default=0)
+
+  def get_params (self, args):
+    return dict(page=int(args.page))
+
+@use( )
+class read_glucose_data (SameNameCommand):
+  """ Read pump glucose page
+  """
+  def configure_app (self, app, parser):
+    parser.add_argument('page', type=int, default=0)
+
+  def get_params (self, args):
+    return dict(page=int(args.page))
+
+
+@use( )
+class iter_glucose (MedtronicTask):
+  """ Read latest 100 records
+  """
+  def main (self, args, app):
+    num = 0
+    records = [ ]
+    for rec in self.pump.model.iter_glucose_pages( ):
+      records.append(rec)
+      num = num + 1
+      if num > 99:
+        break
+    return records
+
+@use( )
+class iter_pump (MedtronicTask):
+  """ Read latest 100 records
+  """
+  def main (self, args, app):
+    num = 0
+    records = [ ]
+    for rec in self.pump.model.iter_history_pages( ):
+      records.append(rec)
+      num = num + 1
+      if num > 99:
+        break
+    return records
 
 
 def set_config (args, device):
